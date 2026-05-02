@@ -1,0 +1,61 @@
+Full name: M Thirumal Reddy
+
+City: Hyderabad, Telangana
+
+Years of experience: 18
+
+Current situation: Freelancing
+
+
+Top 5 technical skills:
+Generative AI & RAG Solutions
+AI-Powered Application Development (Full-Stack)
+Cloud & Data Engineering (ETL, Vector DBs, Scalable Architectures)
+Technical Delivery & Stakeholder Management
+
+Top 3 things you've built that you're proud of:
+AI Mutual Fund Advisor App (GenAI + RAG)
+Intelligent Chatbot (LLM + RAG for automation)
+Data-Driven Recommendation Engine (Python, PySpark, AI)
+
+Industries you have experience in:
+Telecommunications (OSS/BSS, Tier-1 Operators)
+Artificial Intelligence & Generative AI Solutions
+Data Engineering & Analytics Platforms
+AI tooling
+
+Type of work: Both
+
+Target roles: AI Agent Builder / GenAI App Developer / RAG Application developer/Technical Delivery Lead
+
+Target platforms: (Upwork / LinkedIn / Naukri / Indeed / unjob.ai / fiverr)
+
+
+Preferred project types: GenAI/RAG Apps | AI Product Development | Cloud & Data Engineering | AI Automation
+
+Freelance hourly rate (USD): 20 to 50 USD
+
+Full-time expected CTC (INR): 3 Lakhs per Month
+
+Minimum acceptable (don't go below): 1.5 Lakhs per month
+
+Open to equity/startup roles: Yes
+
+
+Industries to avoid: Gambling, Crypto Scams. (Everything which is legal)
+
+Client red flags to avoid: as of now nothing i have.
+
+Locations: Open to hybrid 
+
+ URL of your Google Sheet
+https://docs.google.com/spreadsheets/d/1k8bLVX9BQqMk12jxtNLHqbuC1xRL97p7QJrNYJ4kjf8/edit?usp=sharing
+
+URLs of both Notion Profile
+
+https://www.notion.so/Job-Agent-My-Profile-3524b50ef06080aabc3cdd7410461806?source=copy_link
+
+
+URL of  Notion Template
+
+https://www.notion.so/Job-Agent-Prompt-Templates-3524b50ef06080b6841fc22f79d8b371?source=copy_link

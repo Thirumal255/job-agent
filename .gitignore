@@ -1,0 +1,38 @@
+# Secrets — NEVER commit these
+.env
+credentials.json
+authorized_user.json
+gmail_token.json
+gspread_token.json
+job-agent-keys.txt
+
+# Runtime cache files — generated at runtime, not source code
+pending_applications.json
+jobs_cache.json
+proposals_cache.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Claude Code local state
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ngrok
+ngrok.exe
+
+# Local test scripts (not part of deployed system)
+run_writer.py
+set_webhook.py

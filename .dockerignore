@@ -1,0 +1,10 @@
+.env
+credentials.json
+gmail_token.json
+authorized_user.json
+jobs_cache.json
+proposals_cache.json
+pending_applications.json
+__pycache__
+*.pyc
+*.pyo

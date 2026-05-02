@@ -1,0 +1,88 @@
+name: Deploy Job Agent to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: rational-autumn-494910-p2
+  REGION: asia-south1
+  IMAGE: asia-south1-docker.pkg.dev/rational-autumn-494910-p2/job-agent/agents
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker asia-south1-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.IMAGE }}:${{ github.sha }} .
+          docker tag ${{ env.IMAGE }}:${{ github.sha }} ${{ env.IMAGE }}:latest
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Update Scout agent
+        run: |
+          gcloud run jobs update scout-agent \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }}
+
+      - name: Update Writer agent
+        run: |
+          gcloud run deploy writer-agent \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --no-traffic
+
+          gcloud run services update-traffic writer-agent \
+            --to-latest \
+            --region ${{ env.REGION }}
+
+      - name: Update Comms agent
+        run: |
+          gcloud run jobs update comms-agent \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }}
+
+      - name: Update Applier agent
+        run: |
+          gcloud run jobs update applier-agent \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }}
+
+      - name: Send Telegram notification
+        run: |
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="✅ Job Agent deployed successfully!
+
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Deployed by: ${{ github.actor }}
+
+          All 4 agents updated and running 🚀"

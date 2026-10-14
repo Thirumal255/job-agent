@@ -1,9 +1,15 @@
 name: Deploy Job Agent to Cloud Run
 
+# Auto-deploy DISABLED: the old GCP project (rational-autumn-494910-p2) is no
+# longer usable. Moving to a new Google Cloud account — update PROJECT_ID,
+# IMAGE and the WIF secrets, then restore the push trigger below.
+#
+# on:
+#   push:
+#     branches:
+#       - main
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:   # manual only; nothing runs on push
 
 env:
   PROJECT_ID: rational-autumn-494910-p2

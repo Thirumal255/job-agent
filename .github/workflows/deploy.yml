@@ -80,6 +80,10 @@ jobs:
             --image ${{ env.IMAGE }}:${{ github.sha }} \
             --region ${{ env.REGION }}
 
+      - name: Update Digest agent
+        run: |
+          gcloud run jobs update digest-agent             --image ${{ env.IMAGE }}:${{ github.sha }}             --region ${{ env.REGION }}
+
       - name: Send Telegram notification
         run: |
           curl -s -X POST \
@@ -91,4 +95,4 @@ jobs:
           Branch: ${{ github.ref_name }}
           Deployed by: ${{ github.actor }}
 
-          All 4 agents updated and running 🚀"
+          All 5 agents updated and running 🚀"

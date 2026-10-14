@@ -162,6 +162,8 @@ def handle_send(job_id):
                 "pending",
                 job["proposal"],
             ])
+        job["status"] = "queued"
+        save_job(job)
         print(f"[send] Queued {job_id}: {job['title']}")
     except Exception as e:
         print(f"[send] Sheets save failed: {e}")

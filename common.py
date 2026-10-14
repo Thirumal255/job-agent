@@ -8,6 +8,7 @@ import html
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
@@ -155,9 +156,30 @@ def make_job_id(key):
 
 
 def save_job(job):
+    now = datetime.now(timezone.utc).isoformat()
+    job.setdefault("created_at", now)
+    job["updated_at"] = now
     write_blob(f"jobs/{job['id']}.json", json.dumps(job, ensure_ascii=False, indent=2))
 
 
 def load_job(job_id):
     raw = read_blob(f"jobs/{job_id}.json")
     return json.loads(raw) if raw else None
+
+
+def jobs_updated_since(since):
+    """Return all stored jobs changed at or after `since` (aware datetime)."""
+    jobs = []
+    try:
+        if IN_CLOUD_RUN:
+            for blob in _bucket().client.list_blobs(GCS_BUCKET, prefix="jobs/"):
+                if blob.updated and blob.updated >= since:
+                    jobs.append(json.loads(blob.download_as_text()))
+        else:
+            for path in (LOCAL_DATA_DIR / "jobs").glob("*.json"):
+                mtime = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+                if mtime >= since:
+                    jobs.append(json.loads(path.read_text(encoding="utf-8")))
+    except Exception as e:
+        print(f"   ⚠ Listing jobs failed: {e}")
+    return jobs

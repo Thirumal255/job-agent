@@ -144,7 +144,8 @@ def extract_body(payload):
 def fetch_emails(service):
     """Fetch unread job-related emails from the last 48 hours."""
     query = (
-        "is:unread newer_than:2d "
+        # -from:me / -label:job-agent: never process our own digest emails
+        "is:unread newer_than:2d -from:me -label:job-agent "
         "(subject:application OR subject:interview OR subject:opportunity "
         "OR subject:position OR subject:role OR subject:proposal OR subject:project)"
     )

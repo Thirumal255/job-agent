@@ -22,6 +22,7 @@ Every day at 8am IST, the system wakes up and:
 4. **Writes** a tailored proposal from the full job description, plus screening answers
 5. **Queues** approved proposals and sends "submit on Upwork" cards to Telegram
 6. **Monitors** Gmail for replies, classifies them, and drafts responses
+7. **Emails** you a daily digest (Gmail, labelled `job-agent`) — Telegram is for actions, the digest is the readable record
 
 You can also **paste any Upwork job** (link + description) into the Telegram chat
 to get it scored and a proposal written immediately — this is how it works until
@@ -82,6 +83,7 @@ Cloud Scheduler (every 2hrs)
 | `writer_agent.py` | Cloud Run Service | Telegram button tap or pasted job | Writes proposals with Claude Sonnet |
 | `applier_agent.py` | Cloud Run Job | `/apply` Telegram command | Sends "submit on Upwork" cards from pending queue |
 | `comms_agent.py` | Cloud Run Job | Every 2 hours | Monitors Gmail, drafts replies |
+| `digest_agent.py` | Cloud Run Job | Daily (after scout) | Emails a 24h summary: new matches, drafted and queued proposals |
 
 ---
 

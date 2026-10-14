@@ -24,18 +24,27 @@ D:\Personal_Data\Projects_Self\job-agent
 - TELEGRAM_CHAT_ID — Thirumal's Telegram chat ID
 - GCP_PROJECT_ID — rational-autumn-494910-p2
 - N8N_WEBHOOK_URL — not needed anymore
+- GOOGLE_SHEETS_ID — applications/emails tracking sheet
+- TELEGRAM_WEBHOOK_SECRET — shared secret Telegram sends to writer_agent's webhook
+- UPWORK_CLIENT_ID / UPWORK_CLIENT_SECRET / UPWORK_REDIRECT_URI — Upwork API (once approved)
+
+## Scope: Upwork only
+Jobs come only from Upwork. Never scrape Upwork or submit proposals
+automatically — Upwork's rules ban both. The agents find, score and draft;
+Thirumal submits each proposal on Upwork manually.
 
 ## Architecture
-5 Python scripts, each is one agent:
-1. scout_agent.py — fetches and scores jobs daily
-2. writer_agent.py — writes proposals (triggered by Telegram)
-3. applier_agent.py — submits applications (after approval)
+5 Python scripts, each is one agent (shared helpers in common.py,
+Upwork API client in upwork_api.py):
+1. scout_agent.py — searches Upwork via the official API and scores jobs daily
+2. writer_agent.py — writes proposals (triggered by Telegram; also accepts pasted Upwork jobs)
+3. applier_agent.py — sends "submit on Upwork" cards for approved proposals
 4. comms_agent.py — monitors Gmail, drafts replies
 5. portfolio_agent.py — builds case studies weekly
 
 ## Tech stack
 - Language: Python 3
-- Job source: Remotive API (free, no auth needed)
+- Job source: Upwork official GraphQL API (OAuth 2.0, needs Upwork approval)
 - AI: Anthropic Claude API (Haiku for scoring, Sonnet for writing)
 - Database: Google Sheets (gspread library)
 - Notifications: Telegram Bot API

@@ -1,9 +1,7 @@
 anthropic
 python-dotenv
 requests
-feedparser
 flask
-beautifulsoup4
 gspread
 google-auth
 google-auth-oauthlib

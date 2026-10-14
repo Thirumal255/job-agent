@@ -7,57 +7,22 @@ from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from pathlib import Path
 
-import requests
 from anthropic import Anthropic
-from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-sys.stdout.reconfigure(encoding="utf-8")
-load_dotenv(override=True)
+from common import (
+    BASE_DIR, GOOGLE_SHEETS_ID, IN_CLOUD_RUN as _IN_CLOUD_RUN,
+    esc, gspread_client as _gspread_client, startup_check, tg_send, write_oauth_files,
+)
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID")
+claude = Anthropic()
 
-_IN_CLOUD_RUN = bool(os.environ.get("K_SERVICE") or os.environ.get("CLOUD_RUN_JOB"))
-
-claude = Anthropic(api_key=ANTHROPIC_API_KEY)
-
-# File paths
-BASE_DIR = Path(__file__).parent
-APPDATA = Path(os.environ.get("APPDATA", Path.home()))
-GSPREAD_DIR = APPDATA / "gspread"
-
-def startup_check():
-    required = ["ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]
-    missing = [v for v in required if not os.environ.get(v)]
-    if missing:
-        print(f"❌ Missing env vars: {', '.join(missing)}")
-        sys.exit(1)
-    print(f"✅ Env check passed ({len(required)} vars present)")
-
-def _write_oauth_files():
-    """Write OAuth JSON from env vars to /tmp (used in Cloud Run)."""
-    def _write(env_var, path):
-        val = os.environ.get(env_var)
-        if val:
-            Path(path).write_text(val.lstrip('﻿'), encoding='utf-8')
-            return True
-        return False
-
-    wrote = []
-    if _write("GSPREAD_CREDENTIALS", "/tmp/credentials.json"):
-        wrote.append("GSPREAD_CREDENTIALS → /tmp/credentials.json")
-    if _write("GSPREAD_TOKEN", "/tmp/gspread_token.json"):
-        wrote.append("GSPREAD_TOKEN → /tmp/gspread_token.json")
-    if _write("GMAIL_TOKEN", "/tmp/gmail_token.json"):
-        wrote.append("GMAIL_TOKEN → /tmp/gmail_token.json")
-    for item in wrote:
-        print(f"   📄 {item}")
+# Only these email types may ever be auto-replied to. Enforced in code because
+# the classifier reads untrusted email text and could be talked into anything.
+AUTO_REPLY_TYPES = {"rejection", "follow_up"}
 
 if _IN_CLOUD_RUN:
     GMAIL_CREDS_FILE = Path("/tmp/credentials.json")
@@ -133,18 +98,6 @@ def get_gmail_service():
 
 
 # ── Step 2: Read applied companies from Sheets ────────────────────────────────
-
-def _gspread_client():
-    import gspread
-    if _IN_CLOUD_RUN:
-        return gspread.oauth(
-            credentials_filename=Path("/tmp/credentials.json"),
-            authorized_user_filename=Path("/tmp/gspread_token.json"),
-        )
-    return gspread.oauth(
-        credentials_filename=BASE_DIR / "credentials.json",
-        authorized_user_filename=GSPREAD_DIR / "authorized_user.json",
-    )
 
 def get_companies_applied():
     """Get list of companies we applied to, to help prioritise emails."""
@@ -280,25 +233,6 @@ def mark_as_read(service, message_id):
     ).execute()
 
 
-def tg_send(text, reply_markup=None):
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True,
-    }
-    if reply_markup:
-        payload["reply_markup"] = reply_markup
-    try:
-        resp = requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json=payload, timeout=15,
-        )
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"   ✗ Telegram send failed: {e}")
-
-
 def handle_email(service, email, classification):
     """Auto-reply or send Telegram attention card. Returns action string."""
     email_type = classification.get("type", "not_relevant")
@@ -310,16 +244,20 @@ def handle_email(service, email, classification):
     if email_type == "not_relevant":
         return "skipped"
 
+    if auto_reply and draft_reply and email_type not in AUTO_REPLY_TYPES:
+        print(f"   ⚠ Classifier wanted to auto-reply to a '{email_type}' email — blocked")
+        auto_reply = False
+
     if auto_reply and draft_reply:
         try:
             send_gmail_reply(service, email, draft_reply)
             mark_as_read(service, email["message_id"])
             tg_send(
                 f"✅ <b>Auto-replied to email</b>\n"
-                f"From: {email['sender']}\n"
-                f"Subject: {email['subject']}\n"
-                f"Type: {email_type}\n\n"
-                f"Reply sent:\n<i>{draft_reply}</i>"
+                f"From: {esc(email['sender'])}\n"
+                f"Subject: {esc(email['subject'])}\n"
+                f"Type: {esc(email_type)}\n\n"
+                f"Reply sent:\n<i>{esc(draft_reply)}</i>"
             )
             print(f"   ✉ Auto-reply sent")
             return "auto_replied"
@@ -335,14 +273,14 @@ def handle_email(service, email, classification):
     text = (
         f"📧 <b>Email needs your attention</b>\n"
         f"──────────────────────────────\n"
-        f"<b>From:</b> {sender_name}\n"
-        f"<b>Subject:</b> {email['subject']}\n"
-        f"<b>Type:</b> {type_emoji} {type_label}\n"
-        f"<b>Urgency:</b> {urg_emoji} {urgency.title()}\n\n"
-        f"<b>Summary:</b> {summary}"
+        f"<b>From:</b> {esc(sender_name)}\n"
+        f"<b>Subject:</b> {esc(email['subject'])}\n"
+        f"<b>Type:</b> {type_emoji} {esc(type_label)}\n"
+        f"<b>Urgency:</b> {urg_emoji} {esc(urgency.title())}\n\n"
+        f"<b>Summary:</b> {esc(summary)}"
     )
     if draft_reply:
-        text += f"\n\n<b>Suggested reply:</b>\n<i>{draft_reply[:300]}</i>"
+        text += f"\n\n<b>Suggested reply:</b>\n<i>{esc(draft_reply[:300])}</i>"
 
     tg_send(text)
     return "needs_attention"
@@ -383,8 +321,8 @@ def write_to_sheets(email, classification, action):
 
 def main():
     print("🚀 Comms Agent starting...\n")
-    startup_check()
-    _write_oauth_files()
+    startup_check(["ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"])
+    write_oauth_files()
 
     # Step 1 — Gmail
     print("📧 Connecting to Gmail...")
@@ -431,7 +369,7 @@ def main():
         if action == "needs_attention":
             urg_emoji = URGENCY_EMOJI.get(urgency, "🟡")
             attention_items.append(
-                f"{urg_emoji} {email_type.replace('_', ' ').title()} from {sender_short}"
+                f"{urg_emoji} {esc(email_type.replace('_', ' ').title())} from {esc(sender_short)}"
             )
 
         write_to_sheets(email, classification, action)

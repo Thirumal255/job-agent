@@ -10,6 +10,7 @@ job-agent-keys.txt
 pending_applications.json
 jobs_cache.json
 proposals_cache.json
+data/
 
 # Python
 __pycache__/

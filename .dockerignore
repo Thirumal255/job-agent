@@ -1,10 +1,24 @@
+# Secrets — never bake into the image (Cloud Run gets them from Secret Manager)
 .env
 credentials.json
 gmail_token.json
+gspread_token.json
 authorized_user.json
+job-agent-keys.txt
+
+# Local state and caches
+data/
 jobs_cache.json
 proposals_cache.json
 pending_applications.json
 __pycache__
 *.pyc
 *.pyo
+
+# Not needed at runtime
+.git
+.github
+.claude
+run_writer.py
+set_webhook.py
+spec.md
